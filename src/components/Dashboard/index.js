@@ -1,67 +1,90 @@
 import React, {Component} from "react";
 import {withStyles} from '@material-ui/core/styles';
+import {SECTIONS} from '../../../constants';
+
+import Header from '../Header';
+import Section from '../Section';
+
 import Grid from '@material-ui/core/Grid';
-import Typography from '@material-ui/core/Typography';
-import Paper from '@material-ui/core/Paper';
 
-const sections = ['Applied', 'Interviewing', 'Hired'];
-
-const styles = theme => ({
+const styles = () => ({
+  barRoot: {
+    marginBottom: 16
+  },
   root: {
     flexGrow: 1,
   },
   paper: {
     display: 'flex',
-    height: 140,
+    minHeight: 40,
     width: '30vw',
     paddingTop: 8,
-    justifyContent: 'center'
-  },
-  control: {
-    padding: theme.spacing.unit * 2,
-  },
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    flexDirection: 'column'
+  }
 });
 
 class Dashboard extends Component {
 
   constructor() {
     super();
+    // set our sections in state
     this.state = {
+      city: '',
+      name: '',
       applied: [],
       interviewing: [],
       hired: []
     }
   }
 
-
-
   async componentDidMount() {
+    // get users and put them all into 'applied' section
     const data = await fetch('https://randomuser.me/api/?nat=gb&results=5', {method: 'get'});
     const users = await data.json();
-    const appliedUsers = users.results.map(user => {
-      user.status = 'applied';
-      return user;
-    });
-    this.setState({hired: appliedUsers})
+    this.setState({applied: users.results})
+  }
 
+  handleFilter = (value) => {
+    this.setState({...value});
+  }
+
+  handleClick = (element, section, direction) => {
+    // find item index in state section
+    const index = this.state[section].findIndex(item => item.login.uuid === element.login.uuid);
+
+    // find out new section name
+    const oldSectionIndex = SECTIONS.indexOf(section);
+    const newSectionName = direction === 'forward' ? SECTIONS[oldSectionIndex + 1] : SECTIONS[oldSectionIndex - 1]
+
+    // Change place of item in state
+    const oldSectionList = [...this.state[section]];
+    oldSectionList.splice(index, 1);
+    const newSectionList = [...this.state[newSectionName]];
+    newSectionList.push(element);
+    this.setState({[section]: oldSectionList, [newSectionName]: newSectionList})
   }
 
 
-
   render() {
-    const { classes } = this.props;
+    const {classes} = this.props;
     return (
       <Grid container className={classes.root} spacing={16}>
         <Grid item xs={12}>
-          <Grid container justify="center" spacing={Number(16)}>
-            {sections.map(value => (
-              <Grid key={value} item>
-                <Paper className={classes.paper}>
-                  <Typography variant="h5" component="h3">
-                    {value}
-                  </Typography>
-                </Paper>
-              </Grid>
+          <div className={classes.barRoot}>
+            <Header handleFilter={this.handleFilter}/>
+          </div>
+          <Grid container justify="center" spacing={16}>
+            {SECTIONS.map(value => (
+              <Section
+                key={value}
+                sectionName={value}
+                nameFilter={this.state.name}
+                cityFilter={this.state.city}
+                items={this.state[value]}
+                handleClick={this.handleClick}
+              />
             ))}
           </Grid>
         </Grid>
